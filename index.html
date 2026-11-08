@@ -37,7 +37,7 @@
   <main class="max-w-3xl mx-auto p-4 sm:p-6 pb-24">
 
     <!-- ======================================================== -->
-    <!-- 1. GIAO DIỆN KHÁCH THUÊ (VIEW-ONLY)                      -->
+    <!-- 1. GIAO DIỆN KHÁCH THUÊ                                   -->
     <!-- ======================================================== -->
     <div id="tenantView" class="space-y-5">
       <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
@@ -118,7 +118,7 @@
     </div>
 
     <!-- ======================================================== -->
-    <!-- 2. GIAO DIỆN CHỦ TRỌ (QUẢN TRỊ TOÀN QUYỀN)             -->
+    <!-- 2. GIAO DIỆN CHỦ TRỌ                                     -->
     <!-- ======================================================== -->
     <div id="ownerView" class="hidden space-y-5">
       <div class="flex bg-slate-200/80 p-1 rounded-2xl text-xs font-semibold gap-1">
@@ -141,7 +141,7 @@
               <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
                 <i class="fa-solid fa-calculator text-indigo-600"></i> Tính tiền kỳ mới
               </h2>
-              <p class="text-xs text-slate-500 mt-0.5">Nhập số liệu phát sinh theo các khoản đã cấu hình</p>
+              <p class="text-xs text-slate-500 mt-0.5">Nhập số liệu và chọn tải nhiều ảnh công tơ đính kèm</p>
             </div>
             <div class="flex items-center gap-2">
               <span class="text-xs text-slate-500 font-medium">Kỳ thu:</span>
@@ -193,10 +193,10 @@
         </div>
       </div>
 
-      <!-- TAB 3: CẤU HÌNH TỰ DO HOÀN TOÀN -->
+      <!-- TAB 3: CẤU HÌNH TỰ DO -->
       <div id="ownerTabConfig" class="hidden space-y-5">
         
-        <!-- Khối 1: Thông tin phòng & Bảo mật -->
+        <!-- Thông tin chung & Bảo mật -->
         <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
           <h3 class="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
             <i class="fa-solid fa-id-card text-indigo-600"></i> Thông tin chung & Bảo mật
@@ -217,7 +217,7 @@
           </div>
         </div>
 
-        <!-- Khối 2: Cài đặt VietQR -->
+        <!-- Cài đặt VietQR -->
         <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
           <h3 class="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
             <i class="fa-solid fa-qrcode text-indigo-600"></i> Cấu hình thanh toán VietQR
@@ -243,7 +243,7 @@
           </div>
         </div>
 
-        <!-- Khối 3: Động cơ cấu hình phí (Toàn quyền) -->
+        <!-- Động cơ cấu hình phí -->
         <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
           <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-4">
             <div>
@@ -288,14 +288,23 @@
     </div>
   </div>
 
-  <!-- MODAL XEM ẢNH CÔNG TƠ -->
-  <div id="imageModal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onclick="closeImageModal()">
-    <div class="relative max-w-lg w-full bg-white rounded-2xl overflow-hidden p-2" onclick="event.stopPropagation()">
-      <button onclick="closeImageModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-900/60 text-white flex items-center justify-center">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-      <img id="modalImg" src="" alt="Ảnh đồng hồ đối soát" class="w-full h-auto rounded-xl max-h-[75vh] object-contain">
-      <p class="text-center text-xs text-slate-500 py-2">Ảnh chụp đồng hồ thực tế đối soát</p>
+  <!-- MODAL XEM ALBUM ẢNH CÔNG TƠ ĐỐI SOÁT -->
+  <div id="imageModal" class="hidden fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4" onclick="closeImageModal()">
+    <div class="relative max-w-2xl w-full bg-white rounded-2xl overflow-hidden p-4 shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-100">
+        <h4 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-images text-indigo-600"></i> Ảnh chụp công tơ thực tế (<span id="modalImgCount">0</span> ảnh)
+        </h4>
+        <button onclick="closeImageModal()" class="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Khung hiển thị danh sách ảnh -->
+      <div id="modalGalleryGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[70vh] overflow-y-auto p-1">
+        <!-- Render các ảnh ở đây -->
+      </div>
+      <p class="text-center text-[11px] text-slate-400 mt-3 italic">Bấm vào từng ảnh để xem kích thước lớn trong tab mới nếu muốn phóng to chi tiết số</p>
     </div>
   </div>
 
@@ -329,7 +338,7 @@
     let appConfig = DEFAULT_CONFIG;
     let bills = [];
     let isOwner = false;
-    let selectedImageFiles = {};
+    let selectedImageFiles = {}; // Lưu trữ: { [feeId]: [File, File...] }
 
     function getPreviousMonth(yearMonthStr) {
       const [year, month] = yearMonthStr.split('-').map(Number);
@@ -418,7 +427,7 @@
     }
 
     // ========================================================
-    // 4. LẬP HÓA ĐƠN ĐỘNG & TẢI ẢNH CÔNG TƠ
+    // 4. LẬP HÓA ĐƠN ĐỘNG & HỖ TRỢ NHIỀU ẢNH
     // ========================================================
     function renderOwnerCreateForm() {
       const container = document.getElementById('dynamicFeeInputs');
@@ -497,12 +506,18 @@
                   <input type="number" id="meter_new_${f.id}" placeholder="Gõ số mới..." oninput="calculateLiveTotal()" class="w-full text-xs font-bold text-indigo-600 rounded-lg bg-white border border-indigo-300 p-2 outline-none focus:border-indigo-500">
                 </div>
               </div>
-              <div class="flex items-center gap-3 pt-1">
-                <label class="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-indigo-300 bg-white hover:bg-indigo-50 text-indigo-700 text-xs font-semibold transition-all">
-                  <i class="fa-solid fa-camera"></i> Chọn / Chụp ảnh công tơ
-                  <input type="file" accept="image/*" class="hidden" onchange="handleFileSelect(event, '${f.id}')">
-                </label>
-                <span id="label_img_${f.id}" class="text-xs text-slate-400 italic">Chưa chọn ảnh</span>
+
+              <!-- Khu vực chọn nhiều ảnh -->
+              <div class="pt-1">
+                <div class="flex items-center gap-3">
+                  <label class="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-indigo-300 bg-white hover:bg-indigo-50 text-indigo-700 text-xs font-semibold transition-all">
+                    <i class="fa-solid fa-camera"></i> Chọn / Chụp nhiều ảnh
+                    <input type="file" accept="image/*" multiple class="hidden" onchange="handleMultipleFilesSelect(event, '${f.id}')">
+                  </label>
+                  <span id="label_img_${f.id}" class="text-xs text-slate-400 italic">Chưa chọn ảnh nào</span>
+                </div>
+                <!-- Hàng hiển thị ảnh xem trước thu nhỏ -->
+                <div id="preview_grid_${f.id}" class="flex flex-wrap gap-2 mt-2.5"></div>
               </div>
             </div>
           `;
@@ -512,11 +527,52 @@
       calculateLiveTotal();
     }
 
-    function handleFileSelect(e, feeId) {
-      const file = e.target.files[0];
-      if (file) {
-        selectedImageFiles[feeId] = file;
-        document.getElementById(`label_img_${feeId}`).innerText = file.name;
+    function handleMultipleFilesSelect(e, feeId) {
+      const files = Array.from(e.target.files);
+      if (!files || files.length === 0) return;
+
+      if (!selectedImageFiles[feeId]) selectedImageFiles[feeId] = [];
+      // Thêm các file mới vào mảng
+      selectedImageFiles[feeId] = selectedImageFiles[feeId].concat(files);
+      
+      updateImagePreviews(feeId);
+    }
+
+    function updateImagePreviews(feeId) {
+      const files = selectedImageFiles[feeId] || [];
+      const labelEl = document.getElementById(`label_img_${feeId}`);
+      const gridEl = document.getElementById(`preview_grid_${feeId}`);
+
+      if (files.length === 0) {
+        labelEl.innerText = "Chưa chọn ảnh nào";
+        gridEl.innerHTML = "";
+        return;
+      }
+
+      labelEl.innerText = `Đã chọn ${files.length} ảnh đối soát`;
+      gridEl.innerHTML = "";
+
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const thumbWrap = document.createElement('div');
+          thumbWrap.className = "relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 shadow-sm bg-slate-100 group";
+          thumbWrap.innerHTML = `
+            <img src="${evt.target.result}" class="w-full h-full object-cover">
+            <button onclick="removeSelectedFile('${feeId}', ${index})" class="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 hover:bg-rose-600 text-white rounded-full flex items-center justify-center text-[10px] transition">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          `;
+          gridEl.appendChild(thumbWrap);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function removeSelectedFile(feeId, fileIdx) {
+      if (selectedImageFiles[feeId]) {
+        selectedImageFiles[feeId].splice(fileIdx, 1);
+        updateImagePreviews(feeId);
       }
     }
 
@@ -554,7 +610,7 @@
       const usageMonth = getPreviousMonth(rentMonth);
       const btn = document.getElementById('btnSaveBill');
       btn.disabled = true;
-      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang tải ảnh & lưu...`;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang tải các ảnh & lưu lên Cloud...`;
 
       try {
         const items = [];
@@ -580,11 +636,14 @@
             const used = Math.max(0, newVal - oldVal);
             const amount = used * f.rate;
 
-            let uploadedImageUrl = null;
-            if (selectedImageFiles[f.id]) {
-              const file = selectedImageFiles[f.id];
+            // Xử lý upload danh sách nhiều ảnh lên Supabase Storage
+            let uploadedImages = [];
+            const filesToUpload = selectedImageFiles[f.id] || [];
+
+            for (let i = 0; i < filesToUpload.length; i++) {
+              const file = filesToUpload[i];
               const fileExt = file.name.split('.').pop();
-              const fileName = `${rentMonth}_${f.id}_${Date.now()}.${fileExt}`;
+              const fileName = `${rentMonth}_${f.id}_${Date.now()}_${i}.${fileExt}`;
 
               const { error: uploadErr } = await db.storage
                 .from('meter-photos')
@@ -592,7 +651,7 @@
 
               if (!uploadErr) {
                 const { data: publicUrlData } = db.storage.from('meter-photos').getPublicUrl(fileName);
-                uploadedImageUrl = publicUrlData.publicUrl;
+                uploadedImages.push(publicUrlData.publicUrl);
               }
             }
 
@@ -603,7 +662,7 @@
               newMeter: newVal,
               detail: `${oldVal} → ${newVal} (${used} ${f.unit}) - ${periodNote}`,
               amount,
-              meterImg: uploadedImageUrl
+              meterImages: uploadedImages // Mảng chứa toàn bộ link ảnh
             });
             calculatedTotal += amount;
           }
@@ -626,7 +685,7 @@
         if (upsertErr) throw upsertErr;
 
         await loadBillsFromSupabase();
-        alert("Đã lưu và đồng bộ hóa đơn thành công!");
+        alert("Đã lưu và đồng bộ toàn bộ hóa đơn cùng các ảnh đối soát thành công!");
         switchOwnerTab('history');
       } catch (err) {
         alert("Lỗi khi lưu: " + err.message);
@@ -690,22 +749,26 @@
         document.getElementById('tenantGroupServiceWrap').classList.add('hidden');
       } else {
         document.getElementById('tenantGroupServiceWrap').classList.remove('hidden');
-        serviceList.innerHTML = serviceItems.map(it => `
-          <div class="py-2.5">
-            <div class="flex justify-between items-center">
-              <div>
-                <p class="text-slate-800 font-semibold">${it.name}</p>
-                <p class="text-xs text-slate-500">${it.detail}</p>
+        serviceList.innerHTML = serviceItems.map(it => {
+          // Hỗ trợ cả mảng meterImages mới hoặc meterImg cũ
+          const imgList = it.meterImages || (it.meterImg ? [it.meterImg] : []);
+          return `
+            <div class="py-2.5">
+              <div class="flex justify-between items-center">
+                <div>
+                  <p class="text-slate-800 font-semibold">${it.name}</p>
+                  <p class="text-xs text-slate-500">${it.detail}</p>
+                </div>
+                <span class="font-bold text-slate-900">${formatMoney(it.amount)}</span>
               </div>
-              <span class="font-bold text-slate-900">${formatMoney(it.amount)}</span>
+              ${imgList.length > 0 ? `
+                <button onclick='openGalleryModal(${JSON.stringify(imgList)})' class="mt-2 text-xs text-indigo-600 hover:text-indigo-700 font-medium inline-flex items-center gap-1.5 bg-indigo-50/70 hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg border border-indigo-100 transition-colors">
+                  <i class="fa-solid fa-images"></i> Xem ảnh công tơ đối soát (${imgList.length} ảnh)
+                </button>
+              ` : ''}
             </div>
-            ${it.meterImg ? `
-              <button onclick="openImageModal('${it.meterImg}')" class="mt-2 text-xs text-indigo-600 hover:text-indigo-700 font-medium inline-flex items-center gap-1.5 bg-indigo-50/70 hover:bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100 transition-colors">
-                <i class="fa-solid fa-camera"></i> Xem ảnh công tơ đối soát
-              </button>
-            ` : ''}
-          </div>
-        `).join('');
+          `;
+        }).join('');
       }
 
       // Bù trừ phát sinh
@@ -741,7 +804,12 @@
       // Render bảng lịch sử
       const histTable = document.getElementById('tenantHistoryTable');
       histTable.innerHTML = bills.map(b => {
-        const hasImg = b.items.find(i => i.meterImg);
+        let allImages = [];
+        b.items.forEach(it => {
+          if (it.meterImages) allImages = allImages.concat(it.meterImages);
+          else if (it.meterImg) allImages.push(it.meterImg);
+        });
+
         return `
           <tr>
             <td class="py-3 font-medium text-slate-800">
@@ -750,7 +818,7 @@
             </td>
             <td class="py-3 font-bold text-slate-900">${formatMoney(b.total)}</td>
             <td class="py-3 text-center">
-              ${hasImg ? `<button onclick="openImageModal('${hasImg.meterImg}')" class="text-indigo-600 hover:text-indigo-800"><i class="fa-solid fa-image"></i></button>` : `<span class="text-slate-300">-</span>`}
+              ${allImages.length > 0 ? `<button onclick='openGalleryModal(${JSON.stringify(allImages)})' class="text-indigo-600 hover:text-indigo-800 font-semibold text-xs inline-flex items-center gap-1"><i class="fa-solid fa-images"></i> (${allImages.length})</button>` : `<span class="text-slate-300">-</span>`}
             </td>
             <td class="py-3 text-right">
               <span class="text-xs px-2.5 py-0.5 rounded-full font-medium ${b.status === 'paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}">
@@ -833,7 +901,7 @@
     }
 
     // ========================================================
-    // 7. CẤU HÌNH TỰ DO HOÀN TOÀN (INLINE EDIT 100%)
+    // 7. CẤU HÌNH TỰ DO HOÀN TOÀN
     // ========================================================
     function renderConfigTab() {
       document.getElementById('cfgRoomName').value = appConfig.roomName || '';
@@ -875,7 +943,7 @@
               <label class="block text-[10px] text-slate-400 font-semibold mb-0.5">Hình thức tính:</label>
               <select onchange="appConfig.fees[${idx}].type = this.value" class="w-full bg-white border border-slate-200 rounded-lg p-1.5 outline-none focus:border-indigo-500">
                 <option value="fixed" ${f.type === 'fixed' ? 'selected' : ''}>Cố định trọn gói</option>
-                <option value="meter" ${f.type === 'meter' ? 'selected' : ''}>Công tơ (Có ảnh)</option>
+                <option value="meter" ${f.type === 'meter' ? 'selected' : ''}>Công tơ (Nhiều ảnh)</option>
                 <option value="quantity" ${f.type === 'quantity' ? 'selected' : ''}>Nhân số lượng</option>
               </select>
             </div>
@@ -935,7 +1003,7 @@
     }
 
     // ========================================================
-    // 8. ĐIỀU HƯỚNG & XÁC THỰC MÃ PIN ĐỘNG
+    // 8. ĐIỀU HƯỚNG & XÁC THỰC MÃ PIN
     // ========================================================
     function switchOwnerTab(tab) {
       ['create', 'history', 'config'].forEach(t => {
@@ -984,8 +1052,21 @@
       }
     }
 
-    function openImageModal(src) {
-      document.getElementById('modalImg').src = src;
+    // Modal hiển thị danh sách nhiều ảnh
+    function openGalleryModal(imgList) {
+      if (!imgList || imgList.length === 0) return;
+      document.getElementById('modalImgCount').innerText = imgList.length;
+
+      const grid = document.getElementById('modalGalleryGrid');
+      grid.innerHTML = imgList.map((url, i) => `
+        <div class="space-y-1.5 bg-slate-50 p-2 rounded-xl border border-slate-200">
+          <p class="text-[11px] font-semibold text-slate-600">Ảnh ${i + 1}</p>
+          <a href="${url}" target="_blank" title="Bấm để mở to tab mới" class="block overflow-hidden rounded-lg border border-slate-200">
+            <img src="${url}" class="w-full h-48 object-contain bg-slate-900 rounded-lg hover:scale-105 transition duration-300">
+          </a>
+        </div>
+      `).join('');
+
       document.getElementById('imageModal').classList.remove('hidden');
     }
 
@@ -1036,7 +1117,7 @@
                      .replace('{PREV_MONTH}', b.usageMonth.split('-')[1])
                      .toUpperCase();
       txt += `• Nội dung: ${qrMemo}\n`;
-      txt += `(Khách có thể bấm vào link web để xem ảnh chụp đối soát)`;
+      txt += `(Khách có thể bấm vào link web để xem đầy đủ các ảnh chụp đối soát)`;
 
       navigator.clipboard.writeText(txt).then(() => {
         alert("Đã copy toàn bộ nội dung tin nhắn hóa đơn Zalo vào bộ nhớ tạm!");
