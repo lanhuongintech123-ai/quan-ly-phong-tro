@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản Lý Phòng Trọ - Online Supabase</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Thư viện Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold shadow-md shadow-indigo-100">
+          <i class="fa-solid fa-house-user text-base"></i>
+        </div>
+        <div>
+          <h1 id="headerRoomName" class="font-bold text-slate-900 leading-tight">Đang đồng bộ...</h1>
+          <p id="headerSubtitle" class="text-xs text-slate-500">Cổng tra cứu khách thuê</p>
+        </div>
+      </div>
+      <button id="switchModeBtn" onclick="handleSwitchMode()" class="text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all flex items-center gap-1.5 shadow-sm text-slate-700">
+        <i id="switchIcon" class="fa-solid fa-lock text-slate-500"></i>
+        <span id="switchBtnText">Chế độ Chủ trọ</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto p-4 sm:p-6 pb-24">
+
+    <!-- 1. GIAO DIỆN KHÁCH THUÊ -->
+    <div id="tenantView" class="space-y-5">
+      <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
+        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-100 pb-4">
+          <div>
+            <span id="tenantBillPeriod" class="text-xs font-bold tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full uppercase">Kỳ thanh toán</span>
+            <h2 id="tenantBillTitle" class="text-xl font-bold text-slate-900 mt-2">Hóa đơn tiền phòng</h2>
+          </div>
+          <span id="tenantBillStatus" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/60 w-fit">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Chờ thanh toán
+          </span>
+        </div>
+
+        <div class="mt-4">
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-door-open text-indigo-500"></i> Tiền thuê phòng (Thu trước)
+          </p>
+          <div id="tenantRentList" class="divide-y divide-slate-100 text-sm bg-slate-50/50 rounded-xl p-3 border border-slate-100"></div>
+        </div>
+
+        <div class="mt-4">
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-bolt text-amber-500"></i> Điện nước & Dịch vụ (Sử dụng tháng trước)
+          </p>
+          <div id="tenantServiceList" class="divide-y divide-slate-100 text-sm bg-slate-50/50 rounded-xl p-3 border border-slate-100"></div>
+        </div>
+
+        <div id="tenantExtraBlock" class="mt-3 hidden">
+          <div id="tenantExtraContent" class="text-xs bg-amber-50/80 border border-amber-200/70 p-3 rounded-xl flex justify-between items-center text-amber-900 font-medium"></div>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-slate-100 bg-slate-50 -mx-5 -mb-5 sm:-mx-6 sm:-mb-6 p-5 sm:p-6 rounded-b-2xl">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <p class="text-xs text-slate-500">Tổng thanh toán kỳ này</p>
+              <p id="tenantTotalAmount" class="text-2xl font-bold text-indigo-600">0 đ</p>
+            </div>
+            <button onclick="toggleTenantQr()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-md shadow-indigo-100 transition-all flex items-center gap-2">
+              <i class="fa-solid fa-qrcode"></i> <span id="btnQrText">Xem mã VietQR</span>
+            </button>
+          </div>
+
+          <div id="tenantQrContainer" class="hidden mt-4 pt-4 border-t border-slate-200 text-center">
+            <div class="inline-block bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+              <img id="vietQrImg" src="" alt="Mã QR Chuyển khoản VietQR" class="w-64 h-auto mx-auto rounded-xl">
+            </div>
+            <div class="mt-3 text-xs text-slate-500 space-y-1">
+              <p>Ngân hàng: <strong id="qrBankName" class="text-slate-800"></strong></p>
+              <p>Chủ TK: <strong id="qrAccountName" class="text-slate-800"></strong> - STK: <strong id="qrAccountNumber" class="text-slate-800"></strong></p>
+              <p>Nội dung: <strong id="qrContent" class="text-indigo-600"></strong></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
+        <h3 class="font-bold text-slate-900 mb-4 flex items-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left text-slate-400"></i> Lịch sử đối soát các kỳ
+        </h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead>
+              <tr class="text-slate-400 text-xs uppercase border-b border-slate-100">
+                <th class="pb-3 font-semibold">Kỳ cước</th>
+                <th class="pb-3 font-semibold">Tổng tiền</th>
+                <th class="pb-3 font-semibold text-center">Ảnh công tơ</th>
+                <th class="pb-3 font-semibold text-right">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody id="tenantHistoryTable" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. GIAO DIỆN CHỦ TRỌ -->
+    <div id="ownerView" class="hidden space-y-5">
+      <div class="flex bg-slate-200/80 p-1 rounded-2xl text-xs font-semibold gap-1">
+        <button onclick="switchOwnerTab('create')" id="tabBtnCreate" class="flex-1 py-2 rounded-xl bg-white text-indigo-700 shadow-sm flex items-center justify-center gap-1.5 transition-all">
+          <i class="fa-solid fa-file-circle-plus"></i> Lập hóa đơn
+        </button>
+        <button onclick="switchOwnerTab('history')" id="tabBtnHistory" class="flex-1 py-2 rounded-xl text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all">
+          <i class="fa-solid fa-list-check"></i> Sổ hóa đơn
+        </button>
+        <button onclick="switchOwnerTab('config')" id="tabBtnConfig" class="flex-1 py-2 rounded-xl text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all">
+          <i class="fa-solid fa-sliders"></i> Cài đặt nhanh
+        </button>
+      </div>
+
+      <!-- TAB 1: LẬP HÓA ĐƠN -->
+      <div id="ownerTabCreate" class="space-y-4">
+        <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
+          <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-calculator text-indigo-600"></i> Tính tiền kỳ mới
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">Tiền phòng tháng này + Điện nước dịch vụ tháng trước</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-slate-500 font-medium">Kỳ thu:</span>
+              <input type="month" id="inputBillMonth" onchange="handleMonthChange()" class="text-xs font-bold border border-slate-200 rounded-xl px-3 py-1.5 outline-none focus:border-indigo-500 bg-slate-50 text-indigo-600">
+            </div>
+          </div>
+
+          <div class="mb-4 p-3 bg-indigo-50/60 border border-indigo-100 rounded-xl text-xs text-indigo-900 flex items-center justify-between">
+            <span>Tiền phòng: <strong id="lblRentMonth">--</strong></span>
+            <i class="fa-solid fa-plus text-indigo-300"></i>
+            <span>Điện, nước, dịch vụ: <strong id="lblUsageMonth">--</strong></span>
+          </div>
+
+          <div id="dynamicFeeInputs" class="space-y-3"></div>
+
+          <div class="mt-4 pt-4 border-t border-slate-100">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Khoản phát sinh khác (+ hoặc - tiền)</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <input type="text" id="extraReason" placeholder="Lý do (VD: Sửa vòi, Tiền phạt...)" class="text-xs rounded-xl border border-slate-200 p-2.5 outline-none focus:border-indigo-500">
+              <input type="number" id="extraAmount" placeholder="Số tiền (+ hoặc -)" oninput="calculateLiveTotal()" class="text-xs rounded-xl border border-slate-200 p-2.5 outline-none focus:border-indigo-500">
+            </div>
+          </div>
+
+          <div class="mt-6 p-4 rounded-xl bg-indigo-50/70 border border-indigo-100 flex items-center justify-between">
+            <span class="text-xs font-semibold text-indigo-900">Tổng cộng kỳ này:</span>
+            <span id="liveTotalDisplay" class="text-xl font-bold text-indigo-700">0 đ</span>
+          </div>
+
+          <div class="mt-5 flex flex-wrap gap-2.5">
+            <button id="btnSaveBill" onclick="saveCurrentBillOnline()" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Lưu & Đồng bộ Online
+            </button>
+            <button onclick="copyZaloText()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-all flex items-center gap-1.5">
+              <i class="fa-regular fa-copy"></i> Copy gửi Zalo
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: LỊCH SỬ HÓA ĐƠN -->
+      <div id="ownerTabHistory" class="hidden space-y-4">
+        <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
+          <h3 class="font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left text-slate-400"></i> Danh sách hóa đơn các kỳ
+          </h3>
+          <div id="ownerBillsList" class="space-y-3"></div>
+        </div>
+      </div>
+
+      <!-- TAB 3: CÀI ĐẶT NHANH -->
+      <div id="ownerTabConfig" class="hidden space-y-5">
+        <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
+          <h3 class="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-qrcode text-indigo-600"></i> Tài khoản nhận tiền (Tạo VietQR)
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div>
+              <label class="block font-medium text-slate-500 mb-1">Tên phòng</label>
+              <input type="text" id="cfgRoomName" onchange="autoSaveConfigOnline()" class="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-indigo-500 font-semibold">
+            </div>
+            <div>
+              <label class="block font-medium text-slate-500 mb-1">Tên khách thuê</label>
+              <input type="text" id="cfgTenantName" onchange="autoSaveConfigOnline()" class="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-indigo-500 font-semibold">
+            </div>
+            <div>
+              <label class="block font-medium text-slate-500 mb-1">Ngân hàng (MB, VCB, TCB...)</label>
+              <input type="text" id="cfgBankId" onchange="autoSaveConfigOnline()" class="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-indigo-500 uppercase font-semibold">
+            </div>
+            <div>
+              <label class="block font-medium text-slate-500 mb-1">Số tài khoản</label>
+              <input type="text" id="cfgAccountNo" onchange="autoSaveConfigOnline()" class="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-indigo-500 font-semibold">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block font-medium text-slate-500 mb-1">Tên chủ tài khoản (Không dấu)</label>
+              <input type="text" id="cfgAccountName" onchange="autoSaveConfigOnline()" class="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-indigo-500 uppercase font-semibold">
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
+          <div class="mb-3">
+            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-list-check text-indigo-600"></i> Các khoản thu hàng tháng
+            </h3>
+            <p class="text-xs text-slate-500">Chỉnh sửa trực tiếp tên và đơn giá bên dưới. Tự động lưu lên Cloud.</p>
+          </div>
+
+          <div class="mb-4 pt-2">
+            <p class="text-xs font-semibold text-slate-600 mb-2">Thêm nhanh khoản phí phổ biến:</p>
+            <div class="flex flex-wrap gap-1.5">
+              <button onclick="quickAddFee('water_meter')" class="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-medium flex items-center gap-1 transition">
+                <i class="fa-solid fa-plus text-[10px]"></i> Nước theo đồng hồ
+              </button>
+              <button onclick="quickAddFee('parking')" class="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-medium flex items-center gap-1 transition">
+                <i class="fa-solid fa-plus text-[10px]"></i> Gửi xe máy
+              </button>
+              <button onclick="quickAddFee('cleaning')" class="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-medium flex items-center gap-1 transition">
+                <i class="fa-solid fa-plus text-[10px]"></i> Vệ sinh & Rác
+              </button>
+              <button onclick="quickAddFee('wifi')" class="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-medium flex items-center gap-1 transition">
+                <i class="fa-solid fa-plus text-[10px]"></i> Tiền Wifi
+              </button>
+            </div>
+          </div>
+
+          <div id="feeConfigList" class="space-y-2.5"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL XÁC THỰC MÃ PIN -->
+  <div id="pinModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xs w-full p-6 shadow-2xl border border-slate-100 text-center">
+      <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 text-lg">
+        <i class="fa-solid fa-key"></i>
+      </div>
+      <h3 class="text-sm font-bold text-slate-900">Mã PIN Quản trị</h3>
+      <p class="text-xs text-slate-500 mt-1 mb-3">Nhập mã PIN (Mặc định: <strong>1234</strong>)</p>
+      <input type="password" id="pinInput" placeholder="Nhập PIN..." maxlength="8" class="w-full text-center tracking-widest text-lg font-bold py-2 rounded-xl border border-slate-200 outline-none focus:border-indigo-500 mb-2">
+      <p id="pinError" class="hidden text-xs text-rose-500 mb-2 font-medium">Sai mã PIN!</p>
+      <div class="flex gap-2">
+        <button onclick="closePinModal()" class="flex-1 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Hủy</button>
+        <button onclick="verifyPin()" class="flex-1 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold">Vào</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL XEM ẢNH CÔNG TƠ -->
+  <div id="imageModal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onclick="closeImageModal()">
+    <div class="relative max-w-lg w-full bg-white rounded-2xl overflow-hidden p-2" onclick="event.stopPropagation()">
+      <button onclick="closeImageModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-900/60 text-white flex items-center justify-center">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <img id="modalImg" src="" alt="Ảnh đồng hồ điện" class="w-full h-auto rounded-xl max-h-[75vh] object-contain">
+      <p class="text-center text-xs text-slate-500 py-2">Ảnh chụp đồng hồ thực tế đối soát</p>
+    </div>
+  </div>
+
+  <script>
+    // ========================================================
+    // 1. CẤU HÌNH SUPABASE (THAY 2 THÔNG SỐ CỦA BẠN TẠI ĐÂY)
+    // ========================================================
+    const SUPABASE_URL = "https://your-project-id.supabase.co";
+    const SUPABASE_ANON_KEY = "your-anon-key-here";
+    
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ========================================================
+    // 2. KHỞI TẠO BIẾN TRẠNG THÁI
+    // ========================================================
+    let appConfig = {
+      roomName: "Phòng 101",
+      tenantName: "Anh Hoàng",
+      bankId: "MB",
+      accountNo: "0388888888",
+      accountName: "LUONG THI LAN HUONG",
+      fees: [
+        { id: "rent", name: "Tiền phòng", category: "rent", type: "fixed", rate: 3500000, unit: "tháng" },
+        { id: "electric", name: "Tiền điện sinh hoạt", category: "service", type: "meter", rate: 3500, unit: "kWh" },
+        { id: "water", name: "Tiền nước sinh hoạt", category: "service", type: "quantity", rate: 50000, unit: "người" },
+        { id: "internet", name: "Internet & Rác", category: "service", type: "fixed", rate: 100000, unit: "tháng" }
+      ]
+    };
+
+    let bills = [];
+    let isOwner = false;
+    let selectedImageFiles = {};
+
+    function getPreviousMonth(yearMonthStr) {
+      const [year, month] = yearMonthStr.split('-').map(Number);
+      const prevDate = new Date(year, month - 2, 1);
+      const prevMonth = String(prevDate.getMonth() + 1).padStart(2, '0');
+      return `${prevDate.getFullYear()}-${prevMonth}`;
+    }
+
+    function formatMonthDisplay(yearMonthStr) {
+      if (!yearMonthStr) return '';
+      const [year, month] = yearMonthStr.split('-');
+      return `${month}/${year}`;
+    }
+
+    function formatMoney(n) {
+      return (n || 0).toLocaleString('vi-VN') + ' đ';
+    }
+
+    // ========================================================
+    // 3. TẢI DỮ LIỆU TỪ SUPABASE KHI VÀO WEB
+    // ========================================================
+    async function initApp() {
+      const now = new Date();
+      const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      document.getElementById('inputBillMonth').value = currentMonthStr;
+
+      // 1. Tải cấu hình phòng
+      try {
+        const { data: cfgRow } = await db.from('room_config').select('data').eq('id', 'main').maybeSingle();
+        if (cfgRow && cfgRow.data) {
+          appConfig = cfgRow.data;
+        } else {
+          // Lưu cấu hình mẫu lần đầu
+          await db.from('room_config').upsert({ id: 'main', data: appConfig });
+        }
+      } catch (err) {
+        console.error("Lỗi tải config:", err);
+      }
+
+      // 2. Tải danh sách hóa đơn
+      await loadBillsFromSupabase();
+
+      renderHeader();
+      handleMonthChange();
+      renderConfigTab();
+    }
+
+    async function loadBillsFromSupabase() {
+      try {
+        const { data: billRows, error } = await db.from('room_bills').select('*').order('rent_month', { ascending: false });
+        if (!error && billRows) {
+          bills = billRows.map(r => ({
+            id: r.id,
+            rentMonth: r.rent_month,
+            usageMonth: r.usage_month,
+            items: r.items,
+            extra: r.extra,
+            total: r.total,
+            status: r.status
+          }));
+        }
+      } catch (err) {
+        console.error("Lỗi tải bills:", err);
+      }
+      renderTenantView();
+      renderOwnerBillsList();
+    }
+
+    function renderHeader() {
+      document.getElementById('headerRoomName').innerText = appConfig.roomName;
+    }
+
+    function handleMonthChange() {
+      const rentMonth = document.getElementById('inputBillMonth').value;
+      const usageMonth = getPreviousMonth(rentMonth);
+      document.getElementById('lblRentMonth').innerText = formatMonthDisplay(rentMonth);
+      document.getElementById('lblUsageMonth').innerText = formatMonthDisplay(usageMonth);
+      renderOwnerCreateForm();
+    }
+
+    // ========================================================
+    // 4. LẬP HÓA ĐƠN & TẢI ẢNH LÊN SUPABASE STORAGE
+    // ========================================================
+    function renderOwnerCreateForm() {
+      const container = document.getElementById('dynamicFeeInputs');
+      selectedImageFiles = {};
+
+      const rentM = formatMonthDisplay(document.getElementById('inputBillMonth').value);
+      const usageM = formatMonthDisplay(getPreviousMonth(document.getElementById('inputBillMonth').value));
+
+      container.innerHTML = appConfig.fees.map(f => {
+        const periodBadge = f.category === 'rent'
+          ? `<span class="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-semibold">Kỳ ${rentM}</span>`
+          : `<span class="text-[10px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded font-semibold">Tháng ${usageM}</span>`;
+
+        if (f.type === 'fixed') {
+          return `
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+              <div>
+                <div class="flex items-center gap-2 mb-0.5">
+                  <p class="text-xs font-bold text-slate-800">${f.name}</p>
+                  ${periodBadge}
+                </div>
+                <p class="text-xs text-slate-400">Khoán trọn gói</p>
+              </div>
+              <div class="w-36">
+                <input type="number" id="input_fee_${f.id}" value="${f.rate}" oninput="calculateLiveTotal()" class="w-full text-right text-xs font-semibold rounded-lg border border-slate-200 p-2 outline-none focus:border-indigo-500">
+              </div>
+            </div>
+          `;
+        } else if (f.type === 'quantity') {
+          return `
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+              <div>
+                <div class="flex items-center gap-2 mb-0.5">
+                  <p class="text-xs font-bold text-slate-800">${f.name}</p>
+                  ${periodBadge}
+                </div>
+                <p class="text-xs text-slate-400">${formatMoney(f.rate)} / ${f.unit}</p>
+              </div>
+              <div class="w-36 flex items-center gap-1.5">
+                <input type="number" id="input_qty_${f.id}" value="2" placeholder="Số ${f.unit}" oninput="calculateLiveTotal()" class="w-full text-right text-xs font-semibold rounded-lg border border-slate-200 p-2 outline-none focus:border-indigo-500">
+                <span class="text-xs text-slate-400">${f.unit}</span>
+              </div>
+            </div>
+          `;
+        } else if (f.type === 'meter') {
+          // Tự động tìm số cũ từ hóa đơn trước
+          let prevMeterValue = 0;
+          if (bills.length > 0) {
+            const lastBillItem = bills[0].items.find(i => i.name === f.name);
+            if (lastBillItem && lastBillItem.newMeter) {
+              prevMeterValue = lastBillItem.newMeter;
+            }
+          }
+
+          return `
+            <div class="p-3.5 rounded-xl bg-indigo-50/40 border border-indigo-100/80 space-y-2.5">
+              <div class="flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-indigo-950">${f.name}</span>
+                  ${periodBadge}
+                </div>
+                <span class="text-xs text-indigo-600 font-semibold">${formatMoney(f.rate)} / ${f.unit}</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <label class="block text-slate-400 mb-1">Số cũ (${f.unit})</label>
+                  <input type="number" id="meter_old_${f.id}" value="${prevMeterValue}" oninput="calculateLiveTotal()" class="w-full text-xs font-medium rounded-lg bg-white border border-slate-200 p-2 text-slate-600">
+                </div>
+                <div>
+                  <label class="block text-slate-600 mb-1 font-semibold">Số mới (${f.unit})</label>
+                  <input type="number" id="meter_new_${f.id}" placeholder="Gõ số mới..." oninput="calculateLiveTotal()" class="w-full text-xs font-bold text-indigo-600 rounded-lg bg-white border border-indigo-300 p-2 outline-none focus:border-indigo-500">
+                </div>
+              </div>
+              <div class="flex items-center gap-3 pt-1">
+                <label class="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-indigo-300 bg-white hover:bg-indigo-50 text-indigo-700 text-xs font-semibold transition-all">
+                  <i class="fa-solid fa-camera"></i> Chọn / Chụp ảnh công tơ
+                  <input type="file" accept="image/*" class="hidden" onchange="handleFileSelect(event, '${f.id}')">
+                </label>
+                <span id="label_img_${f.id}" class="text-xs text-slate-400 italic">Chưa chọn ảnh</span>
+              </div>
+            </div>
+          `;
+        }
+      }).join('');
+
+      calculateLiveTotal();
+    }
+
+    function handleFileSelect(e, feeId) {
+      const file = e.target.files[0];
+      if (file) {
+        selectedImageFiles[feeId] = file;
+        document.getElementById(`label_img_${feeId}`).innerText = file.name;
+      }
+    }
+
+    function calculateLiveTotal() {
+      let total = 0;
+      appConfig.fees.forEach(f => {
+        if (f.type === 'fixed') {
+          const val = parseFloat(document.getElementById(`input_fee_${f.id}`)?.value) || 0;
+          total += val;
+        } else if (f.type === 'quantity') {
+          const qty = parseFloat(document.getElementById(`input_qty_${f.id}`)?.value) || 0;
+          total += qty * f.rate;
+        } else if (f.type === 'meter') {
+          const oldVal = parseFloat(document.getElementById(`meter_old_${f.id}`)?.value) || 0;
+          const newVal = parseFloat(document.getElementById(`meter_new_${f.id}`)?.value) || 0;
+          if (newVal >= oldVal) {
+            total += (newVal - oldVal) * f.rate;
+          }
+        }
+      });
+
+      const extra = parseFloat(document.getElementById('extraAmount').value) || 0;
+      total += extra;
+
+      document.getElementById('liveTotalDisplay').innerText = formatMoney(total);
+      return total;
+    }
+
+    async function saveCurrentBillOnline() {
+      const rentMonth = document.getElementById('inputBillMonth').value;
+      if (!rentMonth) {
+        alert("Vui lòng chọn kỳ tháng!");
+        return;
+      }
+      const usageMonth = getPreviousMonth(rentMonth);
+      const btn = document.getElementById('btnSaveBill');
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang tải ảnh & lưu lên Cloud...`;
+
+      try {
+        const items = [];
+        let calculatedTotal = 0;
+
+        for (const f of appConfig.fees) {
+          const periodNote = f.category === 'rent'
+            ? `Tháng ${formatMonthDisplay(rentMonth)}`
+            : `Tháng ${formatMonthDisplay(usageMonth)}`;
+
+          if (f.type === 'fixed') {
+            const amount = parseFloat(document.getElementById(`input_fee_${f.id}`)?.value) || 0;
+            items.push({ name: f.name, category: f.category, detail: periodNote, amount });
+            calculatedTotal += amount;
+          } else if (f.type === 'quantity') {
+            const qty = parseFloat(document.getElementById(`input_qty_${f.id}`)?.value) || 0;
+            const amount = qty * f.rate;
+            items.push({ name: f.name, category: f.category, detail: `${qty} ${f.unit} x ${formatMoney(f.rate)} (${periodNote})`, amount });
+            calculatedTotal += amount;
+          } else if (f.type === 'meter') {
+            const oldVal = parseFloat(document.getElementById(`meter_old_${f.id}`)?.value) || 0;
+            const newVal = parseFloat(document.getElementById(`meter_new_${f.id}`)?.value) || 0;
+            const used = Math.max(0, newVal - oldVal);
+            const amount = used * f.rate;
+            
+            // Xử lý upload ảnh lên Supabase Storage nếu có chọn
+            let uploadedImageUrl = null;
+            if (selectedImageFiles[f.id]) {
+              const file = selectedImageFiles[f.id];
+              const fileExt = file.name.split('.').pop();
+              const fileName = `${rentMonth}_${f.id}_${Date.now()}.${fileExt}`;
+              
+              const { data: uploadData, error: uploadErr } = await db.storage
+                .from('meter-photos')
+                .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+              if (!uploadErr) {
+                const { data: publicUrlData } = db.storage.from('meter-photos').getPublicUrl(fileName);
+                uploadedImageUrl = publicUrlData.publicUrl;
+              }
+            }
+
+            items.push({
+              name: f.name,
+              category: f.category,
+              oldMeter: oldVal,
+              newMeter: newVal,
+              detail: `${oldVal} → ${newVal} (${used} ${f.unit}) - ${periodNote}`,
+              amount,
+              meterImg: uploadedImageUrl
+            });
+            calculatedTotal += amount;
+          }
+        }
+
+        const extraReason = document.getElementById('extraReason').value.trim();
+        const extraAmount = parseFloat(document.getElementById('extraAmount').value) || 0;
+        calculatedTotal += extraAmount;
+
+        // Lưu / Cập nhật vào Supabase Database
+        const payload = {
+          rent_month: rentMonth,
+          usage_month: usageMonth,
+          items: items,
+          extra: { reason: extraReason, amount: extraAmount },
+          total: calculatedTotal,
+          status: 'unpaid'
+        };
+
+        const { error: upsertErr } = await db.from('room_bills').upsert(payload, { onConflict: 'rent_month' });
+        if (upsertErr) throw upsertErr;
+
+        await loadBillsFromSupabase();
+        alert("Đã lưu và đồng bộ lên Cloud thành công! Khách mở link ở bất cứ đâu đều thấy ngay.");
+        switchOwnerTab('history');
+      } catch (err) {
+        alert("Có lỗi khi lưu lên Cloud: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Lưu & Đồng bộ Online`;
+      }
+    }
+
+    // ========================================================
+    // 5. HIỂN THỊ DỮ LIỆU KHÁCH THUÊ
+    // ========================================================
+    function renderTenantView() {
+      if (bills.length === 0) {
+        document.getElementById('tenantRentList').innerHTML = `<p class="text-xs text-slate-400 py-2 text-center">Chưa có hóa đơn nào được phát hành.</p>`;
+        document.getElementById('tenantServiceList').innerHTML = `<p class="text-xs text-slate-400 py-2 text-center">Không có dữ liệu.</p>`;
+        document.getElementById('tenantTotalAmount').innerText = "0 đ";
+        return;
+      }
+      const latest = bills[0];
+
+      const rentM = formatMonthDisplay(latest.rentMonth);
+      const usageM = formatMonthDisplay(latest.usageMonth);
+
+      document.getElementById('tenantBillPeriod').innerText = `Kỳ thu Tháng ${rentM}`;
+      document.getElementById('tenantBillTitle').innerText = `Hóa đơn ${appConfig.roomName}`;
+
+      const statusEl = document.getElementById('tenantBillStatus');
+      if (latest.status === 'paid') {
+        statusEl.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60";
+        statusEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Đã thanh toán`;
+      } else {
+        statusEl.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/60";
+        statusEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Chờ thanh toán`;
+      }
+
+      const rentList = document.getElementById('tenantRentList');
+      const rentItems = latest.items.filter(i => i.category === 'rent');
+      rentList.innerHTML = rentItems.map(it => `
+        <div class="py-2.5 flex justify-between items-center">
+          <div>
+            <p class="text-slate-800 font-semibold">${it.name}</p>
+            <p class="text-xs text-slate-500">Kỳ thuê: ${rentM}</p>
+          </div>
+          <span class="font-bold text-slate-900">${formatMoney(it.amount)}</span>
+        </div>
+      `).join('');
+
+      const serviceList = document.getElementById('tenantServiceList');
+      const serviceItems = latest.items.filter(i => i.category === 'service');
+      serviceList.innerHTML = serviceItems.map(it => `
+        <div class="py-2.5">
+          <div class="flex justify-between items-center">
+            <div>
+              <p class="text-slate-800 font-semibold">${it.name}</p>
+              <p class="text-xs text-slate-500">${it.detail}</p>
+            </div>
+            <span class="font-bold text-slate-900">${formatMoney(it.amount)}</span>
+          </div>
+          ${it.meterImg ? `
+            <button onclick="openImageModal('${it.meterImg}')" class="mt-2 text-xs text-indigo-600 hover:text-indigo-700 font-medium inline-flex items-center gap-1.5 bg-indigo-50/70 hover:bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100 transition-colors">
+              <i class="fa-solid fa-camera"></i> Xem ảnh công tơ đối soát
+            </button>
+          ` : ''}
+        </div>
+      `).join('');
+
+      const extraBlock = document.getElementById('tenantExtraBlock');
+      if (latest.extra && latest.extra.amount !== 0) {
+        extraBlock.classList.remove('hidden');
+        document.getElementById('tenantExtraContent').innerHTML = `
+          <span>Phát sinh: ${latest.extra.reason || 'Khoản bù trừ'}</span>
+          <span class="font-bold ${latest.extra.amount > 0 ? 'text-rose-600' : 'text-emerald-600'}">
+            ${latest.extra.amount > 0 ? '+' : ''}${formatMoney(latest.extra.amount)}
+          </span>
+        `;
+      } else {
+        extraBlock.classList.add('hidden');
+      }
+
+      document.getElementById('tenantTotalAmount').innerText = formatMoney(latest.total);
+
+      const qrMemo = `${appConfig.roomName.replace(/\s+/g, '')} T${latest.rentMonth.split('-')[1]} VA DIEN NUOC T${latest.usageMonth.split('-')[1]}`.toUpperCase();
+      const qrUrl = `https://img.vietqr.io/image/${appConfig.bankId}-${appConfig.accountNo}-compact2.png?amount=${latest.total}&addInfo=${encodeURIComponent(qrMemo)}&accountName=${encodeURIComponent(appConfig.accountName)}`;
+      document.getElementById('vietQrImg').src = qrUrl;
+      document.getElementById('qrBankName').innerText = appConfig.bankId;
+      document.getElementById('qrAccountNumber').innerText = appConfig.accountNo;
+      document.getElementById('qrAccountName').innerText = appConfig.accountName;
+      document.getElementById('qrContent').innerText = qrMemo;
+
+      const histTable = document.getElementById('tenantHistoryTable');
+      histTable.innerHTML = bills.map(b => {
+        const hasImg = b.items.find(i => i.meterImg);
+        return `
+          <tr>
+            <td class="py-3 font-medium text-slate-800">
+              Tháng ${formatMonthDisplay(b.rentMonth)}
+              <span class="block text-xs text-slate-400">Điện nước: ${formatMonthDisplay(b.usageMonth)}</span>
+            </td>
+            <td class="py-3 font-bold text-slate-900">${formatMoney(b.total)}</td>
+            <td class="py-3 text-center">
+              ${hasImg ? `<button onclick="openImageModal('${hasImg.meterImg}')" class="text-indigo-600 hover:text-indigo-800"><i class="fa-solid fa-image"></i></button>` : `<span class="text-slate-300">-</span>`}
+            </td>
+            <td class="py-3 text-right">
+              <span class="text-xs px-2.5 py-0.5 rounded-full font-medium ${b.status === 'paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}">
+                ${b.status === 'paid' ? 'Đã đóng' : 'Chưa đóng'}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function toggleTenantQr() {
+      const el = document.getElementById('tenantQrContainer');
+      const btn = document.getElementById('btnQrText');
+      if (el.classList.contains('hidden')) {
+        el.classList.remove('hidden');
+        btn.innerText = "Ẩn mã QR";
+      } else {
+        el.classList.add('hidden');
+        btn.innerText = "Xem mã VietQR";
+      }
+    }
+
+    // ========================================================
+    // 6. QUẢN LÝ LỊCH SỬ & CÔNG NỢ TRÊN CLOUD
+    // ========================================================
+    function renderOwnerBillsList() {
+      const container = document.getElementById('ownerBillsList');
+      if (bills.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">Chưa có hóa đơn nào.</p>`;
+        return;
+      }
+
+      container.innerHTML = bills.map((b, idx) => `
+        <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-bold text-slate-900">Kỳ thu ${formatMonthDisplay(b.rentMonth)}</span>
+              <span class="text-xs px-2 py-0.5 rounded-full font-medium ${b.status === 'paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                ${b.status === 'paid' ? 'Đã thu' : 'Chưa thu'}
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Điện nước tháng: ${formatMonthDisplay(b.usageMonth)}</p>
+            <p class="text-xs font-bold text-indigo-600 mt-1">${formatMoney(b.total)}</p>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button onclick="toggleBillStatusOnline(${idx})" class="p-2 rounded-lg bg-white border border-slate-200 text-xs font-semibold hover:bg-slate-100 transition-all text-slate-700" title="Đổi trạng thái">
+              <i class="fa-solid fa-arrows-rotate"></i>
+            </button>
+            <button onclick="deleteBillOnline(${idx})" class="p-2 rounded-lg bg-white border border-slate-200 text-xs font-semibold hover:bg-rose-50 text-rose-600 transition-all" title="Xóa">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function toggleBillStatusOnline(idx) {
+      const b = bills[idx];
+      const newStatus = b.status === 'paid' ? 'unpaid' : 'paid';
+      const { error } = await db.from('room_bills').update({ status: newStatus }).eq('rent_month', b.rentMonth);
+      if (!error) {
+        b.status = newStatus;
+        renderOwnerBillsList();
+        renderTenantView();
+      }
+    }
+
+    async function deleteBillOnline(idx) {
+      const b = bills[idx];
+      if (confirm(`Bạn có chắc muốn xóa hóa đơn kỳ ${formatMonthDisplay(b.rentMonth)} trên Cloud?`)) {
+        const { error } = await db.from('room_bills').delete().eq('rent_month', b.rentMonth);
+        if (!error) {
+          bills.splice(idx, 1);
+          renderOwnerBillsList();
+          renderTenantView();
+        }
+      }
+    }
+
+    // ========================================================
+    // 7. CẤU HÌNH NHANH & ĐỒNG BỘ ONLINE
+    // ========================================================
+    function renderConfigTab() {
+      document.getElementById('cfgRoomName').value = appConfig.roomName || '';
+      document.getElementById('cfgTenantName').value = appConfig.tenantName || '';
+      document.getElementById('cfgBankId').value = appConfig.bankId || '';
+      document.getElementById('cfgAccountNo').value = appConfig.accountNo || '';
+      document.getElementById('cfgAccountName').value = appConfig.accountName || '';
+
+      const list = document.getElementById('feeConfigList');
+      list.innerHTML = appConfig.fees.map((f, idx) => `
+        <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div class="flex-1 space-y-1">
+            <div class="flex items-center gap-2">
+              <input type="text" value="${f.name}" onchange="updateFeeField(${idx}, 'name', this.value)" class="font-bold text-slate-800 bg-transparent border-b border-dashed border-slate-300 focus:border-indigo-500 outline-none pb-0.5 w-44">
+              <span class="text-[10px] px-2 py-0.5 rounded font-semibold ${f.category === 'rent' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'}">
+                ${f.category === 'rent' ? 'Tiền nhà (Đầu kỳ)' : 'Dịch vụ (Cuối kỳ)'}
+              </span>
+            </div>
+            <p class="text-slate-400">
+              Cách tính: <strong>${f.type === 'meter' ? 'Đồng hồ công tơ (Có ảnh)' : f.type === 'quantity' ? 'Theo đầu người/xe' : 'Cố định trọn gói'}</strong>
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-slate-500 font-medium">Đơn giá:</span>
+            <input type="number" value="${f.rate}" onchange="updateFeeField(${idx}, 'rate', Number(this.value))" class="w-28 text-right font-bold text-slate-800 rounded-lg border border-slate-200 p-1.5 outline-none focus:border-indigo-500 bg-white">
+            <span class="text-slate-400 font-medium">/${f.unit}</span>
+            <button onclick="removeFeeConfig(${idx})" class="ml-2 text-rose-500 hover:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50" title="Xóa khoản này">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateFeeField(idx, field, value) {
+      appConfig.fees[idx][field] = value;
+      autoSaveConfigOnline();
+    }
+
+    function removeFeeConfig(idx) {
+      if (confirm("Xóa khoản thu này?")) {
+        appConfig.fees.splice(idx, 1);
+        autoSaveConfigOnline();
+        renderConfigTab();
+      }
+    }
+
+    function quickAddFee(type) {
+      if (type === 'water_meter') {
+        appConfig.fees.push({ id: 'fee_' + Date.now(), name: "Tiền nước (Khối)", category: "service", type: "meter", rate: 25000, unit: "m³" });
+      } else if (type === 'parking') {
+        appConfig.fees.push({ id: 'fee_' + Date.now(), name: "Phí gửi xe máy", category: "service", type: "quantity", rate: 100000, unit: "xe" });
+      } else if (type === 'cleaning') {
+        appConfig.fees.push({ id: 'fee_' + Date.now(), name: "Vệ sinh & Rác", category: "service", type: "fixed", rate: 50000, unit: "tháng" });
+      } else if (type === 'wifi') {
+        appConfig.fees.push({ id: 'fee_' + Date.now(), name: "Mạng Internet Wifi", category: "service", type: "fixed", rate: 80000, unit: "tháng" });
+      }
+      autoSaveConfigOnline();
+      renderConfigTab();
+    }
+
+    async function autoSaveConfigOnline() {
+      appConfig.roomName = document.getElementById('cfgRoomName').value.trim();
+      appConfig.tenantName = document.getElementById('cfgTenantName').value.trim();
+      appConfig.bankId = document.getElementById('cfgBankId').value.trim().toUpperCase();
+      appConfig.accountNo = document.getElementById('cfgAccountNo').value.trim();
+      appConfig.accountName = document.getElementById('cfgAccountName').value.trim().toUpperCase();
+
+      renderHeader();
+      renderOwnerCreateForm();
+      renderTenantView();
+
+      await db.from('room_config').upsert({ id: 'main', data: appConfig });
+    }
+
+    // ========================================================
+    // 8. ĐIỀU HƯỚNG & TIỆN ÍCH
+    // ========================================================
+    function switchOwnerTab(tab) {
+      ['create', 'history', 'config'].forEach(t => {
+        document.getElementById(`ownerTab${t.charAt(0).toUpperCase() + t.slice(1)}`).classList.add('hidden');
+        document.getElementById(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`).className = "flex-1 py-2 rounded-xl text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all";
+      });
+
+      document.getElementById(`ownerTab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.remove('hidden');
+      document.getElementById(`tabBtn${tab.charAt(0).toUpperCase() + tab.slice(1)}`).className = "flex-1 py-2 rounded-xl bg-white text-indigo-700 shadow-sm flex items-center justify-center gap-1.5 transition-all font-semibold";
+    }
+
+    function handleSwitchMode() {
+      if (isOwner) {
+        isOwner = false;
+        document.getElementById('ownerView').classList.add('hidden');
+        document.getElementById('tenantView').classList.remove('hidden');
+        document.getElementById('headerSubtitle').innerText = "Cổng tra cứu khách thuê";
+        document.getElementById('switchBtnText').innerText = "Chế độ Chủ trọ";
+        document.getElementById('switchIcon').className = "fa-solid fa-lock text-slate-500";
+      } else {
+        document.getElementById('pinInput').value = '';
+        document.getElementById('pinError').classList.add('hidden');
+        document.getElementById('pinModal').classList.remove('hidden');
+        setTimeout(() => document.getElementById('pinInput').focus(), 100);
+      }
+    }
+
+    function closePinModal() {
+      document.getElementById('pinModal').classList.add('hidden');
+    }
+
+    function verifyPin() {
+      const pin = document.getElementById('pinInput').value.trim();
+      if (pin === "1234") {
+        closePinModal();
+        isOwner = true;
+        document.getElementById('tenantView').classList.add('hidden');
+        document.getElementById('ownerView').classList.remove('hidden');
+        document.getElementById('headerSubtitle').innerText = "Bảng điều khiển quản lý";
+        document.getElementById('switchBtnText').innerText = "Trang Khách";
+        document.getElementById('switchIcon').className = "fa-solid fa-arrow-left text-slate-500";
+      } else {
+        document.getElementById('pinError').classList.remove('hidden');
+      }
+    }
+
+    function openImageModal(src) {
+      document.getElementById('modalImg').src = src;
+      document.getElementById('imageModal').classList.remove('hidden');
+    }
+
+    function closeImageModal() {
+      document.getElementById('imageModal').classList.add('hidden');
+    }
+
+    function copyZaloText() {
+      if (bills.length === 0) return;
+      const b = bills[0];
+      const rentM = formatMonthDisplay(b.rentMonth);
+      const usageM = formatMonthDisplay(b.usageMonth);
+
+      let txt = `🧾 THÔNG BÁO TIỀN TRỌ - KỲ THÁNG ${rentM}\n`;
+      txt += `Phòng: ${appConfig.roomName} (${appConfig.tenantName})\n`;
+      txt += `----------------------------------------\n`;
+      
+      txt += `🏠 1. TIỀN PHÒNG (Tháng ${rentM}):\n`;
+      b.items.filter(i => i.category === 'rent').forEach(it => {
+        txt += `• ${it.name}: ${formatMoney(it.amount)}\n`;
+      });
+
+      txt += `\n⚡ 2. ĐIỆN NƯỚC DỊCH VỤ (Sử dụng Tháng ${usageM}):\n`;
+      b.items.filter(i => i.category === 'service').forEach(it => {
+        txt += `• ${it.name}: ${formatMoney(it.amount)} (${it.detail})\n`;
+      });
+
+      if (b.extra && b.extra.amount !== 0) {
+        txt += `\n📌 Phát sinh (${b.extra.reason}): ${formatMoney(b.extra.amount)}\n`;
+      }
+
+      txt += `----------------------------------------\n`;
+      txt += `👉 TỔNG CỘNG THANH TOÁN: ${formatMoney(b.total)}\n\n`;
+      txt += `💳 THÔNG TIN CHUYỂN KHOẢN (VietQR):\n`;
+      txt += `• Ngân hàng: ${appConfig.bankId}\n`;
+      txt += `• STK: ${appConfig.accountNo}\n`;
+      txt += `• Chủ TK: ${appConfig.accountName}\n`;
+      txt += `• Nội dung: ${appConfig.roomName.replace(/\s+/g, '')} T${b.rentMonth.split('-')[1]} VA DIEN NUOC T${b.usageMonth.split('-')[1]}\n`;
+      txt += `(Khách có thể bấm vào link web để xem ảnh chụp công tơ điện đối soát)`;
+
+      navigator.clipboard.writeText(txt).then(() => {
+        alert("Đã copy toàn bộ nội dung tin nhắn hóa đơn Zalo vào bộ nhớ tạm!");
+      });
+    }
+
+    document.getElementById('pinInput').addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') verifyPin();
+    });
+
+    initApp();
+  </script>
+</body>
+</html>
