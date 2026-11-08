@@ -26,7 +26,6 @@
         </div>
       </div>
 
-      <!-- Chỉ hiện khi URL có ?admin=true -->
       <button id="switchModeBtn" onclick="handleSwitchMode()" class="hidden text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all flex items-center gap-1.5 shadow-sm text-slate-700">
         <i id="switchIcon" class="fa-solid fa-lock text-slate-500"></i>
         <span id="switchBtnText">Chế độ Chủ trọ</span>
@@ -36,9 +35,7 @@
 
   <main class="max-w-3xl mx-auto p-4 sm:p-6 pb-24">
 
-    <!-- ======================================================== -->
-    <!-- 1. GIAO DIỆN KHÁCH THUÊ                                   -->
-    <!-- ======================================================== -->
+    <!-- 1. GIAO DIỆN KHÁCH THUÊ -->
     <div id="tenantView" class="space-y-5">
       <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
         <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-100 pb-4">
@@ -67,8 +64,12 @@
           <div id="tenantServiceList" class="divide-y divide-slate-100 text-sm bg-slate-50/50 rounded-xl p-3 border border-slate-100"></div>
         </div>
 
-        <div id="tenantExtraBlock" class="mt-3 hidden">
-          <div id="tenantExtraContent" class="text-xs bg-amber-50/80 border border-amber-200/70 p-3 rounded-xl flex justify-between items-center text-amber-900 font-medium"></div>
+        <!-- Danh sách các khoản bù trừ phát sinh -->
+        <div id="tenantExtraBlock" class="mt-4 hidden">
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-receipt text-rose-500"></i> Khoản bù trừ & phát sinh
+          </p>
+          <div id="tenantExtraList" class="space-y-1.5 text-xs"></div>
         </div>
 
         <!-- VietQR -->
@@ -96,7 +97,7 @@
         </div>
       </div>
 
-      <!-- Lịch sử -->
+      <!-- Lịch sử hóa đơn lưu trữ theo từng tháng -->
       <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
         <h3 class="font-bold text-slate-900 mb-4 flex items-center gap-2">
           <i class="fa-solid fa-clock-rotate-left text-slate-400"></i> Lịch sử đối soát các kỳ
@@ -117,16 +118,14 @@
       </div>
     </div>
 
-    <!-- ======================================================== -->
-    <!-- 2. GIAO DIỆN CHỦ TRỌ                                     -->
-    <!-- ======================================================== -->
+    <!-- 2. GIAO DIỆN CHỦ TRỌ -->
     <div id="ownerView" class="hidden space-y-5">
       <div class="flex bg-slate-200/80 p-1 rounded-2xl text-xs font-semibold gap-1">
         <button onclick="switchOwnerTab('create')" id="tabBtnCreate" class="flex-1 py-2 rounded-xl bg-white text-indigo-700 shadow-sm flex items-center justify-center gap-1.5 transition-all">
           <i class="fa-solid fa-file-circle-plus"></i> Lập hóa đơn
         </button>
         <button onclick="switchOwnerTab('history')" id="tabBtnHistory" class="flex-1 py-2 rounded-xl text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all">
-          <i class="fa-solid fa-list-check"></i> Sổ hóa đơn
+          <i class="fa-solid fa-list-check"></i> Sổ lưu trữ (<span id="historyBadgeCount">0</span> kỳ)
         </button>
         <button onclick="switchOwnerTab('config')" id="tabBtnConfig" class="flex-1 py-2 rounded-xl text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all">
           <i class="fa-solid fa-sliders"></i> Cấu hình tự do
@@ -141,7 +140,7 @@
               <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
                 <i class="fa-solid fa-calculator text-indigo-600"></i> Tính tiền kỳ mới
               </h2>
-              <p class="text-xs text-slate-500 mt-0.5">Nhập số liệu và chọn tải nhiều ảnh công tơ đính kèm</p>
+              <p class="text-xs text-slate-500 mt-0.5">Tự động tính số điện đã dùng nhân đơn giá</p>
             </div>
             <div class="flex items-center gap-2">
               <span class="text-xs text-slate-500 font-medium">Kỳ thu:</span>
@@ -158,12 +157,20 @@
           <!-- Các khoản nhập liệu tự sinh -->
           <div id="dynamicFeeInputs" class="space-y-3"></div>
 
-          <!-- Khoản bù trừ phát sinh -->
-          <div class="mt-4 pt-4 border-t border-slate-100">
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Khoản bù trừ phát sinh khác (+ hoặc - tiền)</label>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <input type="text" id="extraReason" placeholder="Lý do (VD: Trừ tiền hỏng vòi nước, Phạt ồn...)" class="text-xs rounded-xl border border-slate-200 p-2.5 outline-none focus:border-indigo-500">
-              <input type="number" id="extraAmount" placeholder="Số tiền (+ hoặc -)" oninput="calculateLiveTotal()" class="text-xs rounded-xl border border-slate-200 p-2.5 outline-none focus:border-indigo-500">
+          <!-- Danh sách các khoản bù trừ phát sinh tự do -->
+          <div class="mt-5 pt-4 border-t border-slate-100">
+            <div class="flex justify-between items-center mb-2.5">
+              <div>
+                <label class="block text-xs font-bold text-slate-700">Các khoản bù trừ phát sinh (+ hoặc - tiền)</label>
+                <p class="text-[11px] text-slate-400">Tự do thêm nhiều dòng (VD: Sửa đồ, phạt vi phạm, cọc...)</p>
+              </div>
+              <button onclick="addExtraRow()" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs flex items-center gap-1 transition">
+                <i class="fa-solid fa-plus text-[10px]"></i> Thêm khoản bù trừ
+              </button>
+            </div>
+
+            <div id="extraRowsList" class="space-y-2">
+              <!-- Render động các dòng bù trừ -->
             </div>
           </div>
 
@@ -174,7 +181,7 @@
 
           <div class="mt-5 flex flex-wrap gap-2.5">
             <button id="btnSaveBill" onclick="saveCurrentBillOnline()" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-1.5">
-              <i class="fa-solid fa-cloud-arrow-up"></i> Lưu & Đồng bộ Online
+              <i class="fa-solid fa-cloud-arrow-up"></i> Lưu & Lưu trữ vào sổ
             </button>
             <button onclick="copyZaloText()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-all flex items-center gap-1.5">
               <i class="fa-regular fa-copy"></i> Copy gửi Zalo
@@ -183,20 +190,21 @@
         </div>
       </div>
 
-      <!-- TAB 2: LỊCH SỬ HÓA ĐƠN -->
+      <!-- TAB 2: SỔ LƯU TRỮ HÓA ĐƠN THEO TỪNG THÁNG -->
       <div id="ownerTabHistory" class="hidden space-y-4">
         <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
-          <h3 class="font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-clock-rotate-left text-slate-400"></i> Danh sách hóa đơn các kỳ
-          </h3>
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-box-archive text-indigo-600"></i> Toàn bộ hóa đơn đã lưu trữ theo tháng
+            </h3>
+            <span class="text-xs text-slate-400">Được lưu an toàn trên Cloud</span>
+          </div>
           <div id="ownerBillsList" class="space-y-3"></div>
         </div>
       </div>
 
       <!-- TAB 3: CẤU HÌNH TỰ DO -->
       <div id="ownerTabConfig" class="hidden space-y-5">
-        
-        <!-- Thông tin chung & Bảo mật -->
         <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
           <h3 class="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
             <i class="fa-solid fa-id-card text-indigo-600"></i> Thông tin chung & Bảo mật
@@ -217,7 +225,6 @@
           </div>
         </div>
 
-        <!-- Cài đặt VietQR -->
         <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
           <h3 class="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
             <i class="fa-solid fa-qrcode text-indigo-600"></i> Cấu hình thanh toán VietQR
@@ -236,14 +243,13 @@
               <input type="text" id="cfgAccountName" class="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-indigo-500 uppercase font-semibold">
             </div>
             <div>
-              <label class="block font-medium text-slate-500 mb-1">Mẫu nội dung chuyển khoản (Tùy biến)</label>
+              <label class="block font-medium text-slate-500 mb-1">Mẫu nội dung chuyển khoản</label>
               <input type="text" id="cfgQrPattern" placeholder="{ROOM} TIEN NHA T{MONTH}" class="w-full rounded-xl border border-slate-200 p-2.5 outline-none focus:border-indigo-500 font-medium">
               <span class="text-[10px] text-slate-400">Dùng được: {ROOM}, {MONTH}, {PREV_MONTH}</span>
             </div>
           </div>
         </div>
 
-        <!-- Động cơ cấu hình phí -->
         <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
           <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-4">
             <div>
@@ -265,7 +271,6 @@
             </button>
           </div>
         </div>
-
       </div>
     </div>
 
@@ -288,7 +293,7 @@
     </div>
   </div>
 
-  <!-- MODAL XEM ALBUM ẢNH CÔNG TƠ ĐỐI SOÁT -->
+  <!-- MODAL XEM ALBUM ẢNH CÔNG TƠ -->
   <div id="imageModal" class="hidden fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4" onclick="closeImageModal()">
     <div class="relative max-w-2xl w-full bg-white rounded-2xl overflow-hidden p-4 shadow-2xl" onclick="event.stopPropagation()">
       <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-100">
@@ -299,12 +304,8 @@
           <i class="fa-solid fa-xmark text-sm"></i>
         </button>
       </div>
-
-      <!-- Khung hiển thị danh sách ảnh -->
-      <div id="modalGalleryGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[70vh] overflow-y-auto p-1">
-        <!-- Render các ảnh ở đây -->
-      </div>
-      <p class="text-center text-[11px] text-slate-400 mt-3 italic">Bấm vào từng ảnh để xem kích thước lớn trong tab mới nếu muốn phóng to chi tiết số</p>
+      <div id="modalGalleryGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[70vh] overflow-y-auto p-1"></div>
+      <p class="text-center text-[11px] text-slate-400 mt-3 italic">Bấm vào từng ảnh để phóng to trong tab mới</p>
     </div>
   </div>
 
@@ -317,7 +318,7 @@
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // ========================================================
-    // 2. BIẾN VÀ CẤU HÌNH MẶC ĐỊNH
+    // 2. BIẾN TOÀN CỤC VÀ DỮ LIỆU
     // ========================================================
     const DEFAULT_CONFIG = {
       roomName: "Phòng 101",
@@ -338,7 +339,8 @@
     let appConfig = DEFAULT_CONFIG;
     let bills = [];
     let isOwner = false;
-    let selectedImageFiles = {}; // Lưu trữ: { [feeId]: [File, File...] }
+    let selectedImageFiles = {};
+    let extraRowsData = []; // Danh sách các khoản bù trừ tự do: [{ id, reason, amount }]
 
     function getPreviousMonth(yearMonthStr) {
       const [year, month] = yearMonthStr.split('-').map(Number);
@@ -401,7 +403,7 @@
             rentMonth: r.rent_month,
             usageMonth: r.usage_month,
             items: r.items,
-            extra: r.extra,
+            extra: r.extra, // Hỗ trợ mảng { extras: [...] } hoặc { reason, amount }
             total: r.total,
             status: r.status
           }));
@@ -409,6 +411,7 @@
       } catch (err) {
         console.error("Lỗi tải bills:", err);
       }
+      document.getElementById('historyBadgeCount').innerText = bills.length;
       renderTenantView();
       renderOwnerBillsList();
     }
@@ -423,11 +426,27 @@
       const usageMonth = getPreviousMonth(rentMonth);
       document.getElementById('lblRentMonth').innerText = formatMonthDisplay(rentMonth);
       document.getElementById('lblUsageMonth').innerText = formatMonthDisplay(usageMonth);
+
+      // Nếu kỳ này đã từng lưu, tự điền lại các khoản bù trừ cũ
+      const existing = bills.find(b => b.rentMonth === rentMonth);
+      if (existing && existing.extra) {
+        if (Array.isArray(existing.extra.extras)) {
+          extraRowsData = [...existing.extra.extras];
+        } else if (existing.extra.amount) {
+          extraRowsData = [{ id: 'ex_1', reason: existing.extra.reason, amount: existing.extra.amount }];
+        } else {
+          extraRowsData = [];
+        }
+      } else {
+        extraRowsData = [];
+      }
+
       renderOwnerCreateForm();
+      renderExtraRows();
     }
 
     // ========================================================
-    // 4. LẬP HÓA ĐƠN ĐỘNG & HỖ TRỢ NHIỀU ẢNH
+    // 4. LẬP HÓA ĐƠN: TÍNH TOÁN TRỰC TIẾP TẠI CHỖ
     // ========================================================
     function renderOwnerCreateForm() {
       const container = document.getElementById('dynamicFeeInputs');
@@ -464,7 +483,7 @@
           `;
         } else if (f.type === 'quantity') {
           return `
-            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <div class="flex items-center gap-2 mb-0.5">
                   <p class="text-xs font-bold text-slate-800">${f.name}</p>
@@ -472,9 +491,14 @@
                 </div>
                 <p class="text-xs text-slate-400">${formatMoney(f.rate)} / ${f.unit}</p>
               </div>
-              <div class="w-36 flex items-center gap-1.5">
-                <input type="number" id="input_qty_${f.id}" value="1" placeholder="Số ${f.unit}" oninput="calculateLiveTotal()" class="w-full text-right text-xs font-semibold rounded-lg border border-slate-200 p-2 outline-none focus:border-indigo-500">
-                <span class="text-xs text-slate-400">${f.unit}</span>
+              <div class="flex items-center gap-2">
+                <div class="w-32 flex items-center gap-1.5">
+                  <input type="number" id="input_qty_${f.id}" value="1" placeholder="Số ${f.unit}" oninput="updateLiveCalc('${f.id}', ${f.rate}, 'quantity', '${f.unit}')" class="w-full text-right text-xs font-semibold rounded-lg border border-slate-200 p-2 outline-none focus:border-indigo-500">
+                  <span class="text-xs text-slate-400">${f.unit}</span>
+                </div>
+                <div id="calc_box_${f.id}" class="text-xs font-bold text-indigo-600 min-w-[90px] text-right">
+                  ${formatMoney(f.rate)}
+                </div>
               </div>
             </div>
           `;
@@ -496,18 +520,24 @@
                 </div>
                 <span class="text-xs text-indigo-600 font-semibold">${formatMoney(f.rate)} / ${f.unit}</span>
               </div>
+
               <div class="grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <label class="block text-slate-400 mb-1">Số cũ (${f.unit})</label>
-                  <input type="number" id="meter_old_${f.id}" value="${prevMeterValue}" oninput="calculateLiveTotal()" class="w-full text-xs font-medium rounded-lg bg-white border border-slate-200 p-2 text-slate-600">
+                  <input type="number" id="meter_old_${f.id}" value="${prevMeterValue}" oninput="updateLiveCalc('${f.id}', ${f.rate}, 'meter', '${f.unit}')" class="w-full text-xs font-medium rounded-lg bg-white border border-slate-200 p-2 text-slate-600">
                 </div>
                 <div>
                   <label class="block text-slate-600 mb-1 font-semibold">Số mới (${f.unit})</label>
-                  <input type="number" id="meter_new_${f.id}" placeholder="Gõ số mới..." oninput="calculateLiveTotal()" class="w-full text-xs font-bold text-indigo-600 rounded-lg bg-white border border-indigo-300 p-2 outline-none focus:border-indigo-500">
+                  <input type="number" id="meter_new_${f.id}" placeholder="Gõ số mới..." oninput="updateLiveCalc('${f.id}', ${f.rate}, 'meter', '${f.unit}')" class="w-full text-xs font-bold text-indigo-600 rounded-lg bg-white border border-indigo-300 p-2 outline-none focus:border-indigo-500">
                 </div>
               </div>
 
-              <!-- Khu vực chọn nhiều ảnh -->
+              <!-- Hộp hiển thị trực quan phép tính tiền điện/nước -->
+              <div id="calc_box_${f.id}" class="p-2.5 rounded-lg bg-white border border-indigo-100 text-xs flex justify-between items-center text-indigo-900">
+                <span class="text-slate-500 italic">Nhập số mới để tự động nhân thành tiền...</span>
+                <span class="font-bold text-indigo-600">0 đ</span>
+              </div>
+
               <div class="pt-1">
                 <div class="flex items-center gap-3">
                   <label class="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-indigo-300 bg-white hover:bg-indigo-50 text-indigo-700 text-xs font-semibold transition-all">
@@ -516,7 +546,6 @@
                   </label>
                   <span id="label_img_${f.id}" class="text-xs text-slate-400 italic">Chưa chọn ảnh nào</span>
                 </div>
-                <!-- Hàng hiển thị ảnh xem trước thu nhỏ -->
                 <div id="preview_grid_${f.id}" class="flex flex-wrap gap-2 mt-2.5"></div>
               </div>
             </div>
@@ -527,14 +556,79 @@
       calculateLiveTotal();
     }
 
+    // Tự động tính số điện đã dùng nhân đơn giá hiển thị ngay tại dòng đó
+    function updateLiveCalc(feeId, rate, type, unit) {
+      const box = document.getElementById(`calc_box_${feeId}`);
+      if (type === 'meter') {
+        const oldVal = parseFloat(document.getElementById(`meter_old_${feeId}`)?.value) || 0;
+        const newVal = parseFloat(document.getElementById(`meter_new_${feeId}`)?.value) || 0;
+        const used = Math.max(0, newVal - oldVal);
+        const amount = used * rate;
+
+        if (newVal >= oldVal && newVal > 0) {
+          box.innerHTML = `
+            <span>Đã dùng: <strong class="text-indigo-700 font-bold">${used} ${unit}</strong> (${newVal} - ${oldVal}) × ${formatMoney(rate)}</span>
+            <span class="font-bold text-indigo-600 text-sm">= ${formatMoney(amount)}</span>
+          `;
+        } else {
+          box.innerHTML = `
+            <span class="text-slate-400">Số mới phải lớn hơn hoặc bằng số cũ (${oldVal})</span>
+            <span class="font-bold text-slate-400">0 đ</span>
+          `;
+        }
+      } else if (type === 'quantity') {
+        const qty = parseFloat(document.getElementById(`input_qty_${feeId}`)?.value) || 0;
+        const amount = qty * rate;
+        box.innerText = `= ` + formatMoney(amount);
+      }
+      calculateLiveTotal();
+    }
+
+    // ========================================================
+    // QUẢN LÝ KHOẢN BÙ TRỪ TỰ DO (+ / - TIỀN)
+    // ========================================================
+    function addExtraRow() {
+      extraRowsData.push({
+        id: 'ex_' + Date.now(),
+        reason: '',
+        amount: 0
+      });
+      renderExtraRows();
+      calculateLiveTotal();
+    }
+
+    function removeExtraRow(idx) {
+      extraRowsData.splice(idx, 1);
+      renderExtraRows();
+      calculateLiveTotal();
+    }
+
+    function renderExtraRows() {
+      const container = document.getElementById('extraRowsList');
+      if (extraRowsData.length === 0) {
+        container.innerHTML = `<p class="text-[11px] text-slate-400 italic">Không có khoản bù trừ nào phát sinh.</p>`;
+        return;
+      }
+
+      container.innerHTML = extraRowsData.map((ex, idx) => `
+        <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200 text-xs">
+          <input type="text" value="${ex.reason}" placeholder="Lý do (VD: Trừ tiền sửa vòi, Phạt ồn...)" oninput="extraRowsData[${idx}].reason = this.value; calculateLiveTotal()" class="flex-1 bg-white border border-slate-200 rounded-lg p-2 outline-none focus:border-indigo-500 font-medium">
+          <div class="w-32">
+            <input type="number" value="${ex.amount || ''}" placeholder="Số tiền (+/-)" oninput="extraRowsData[${idx}].amount = parseFloat(this.value) || 0; calculateLiveTotal()" class="w-full text-right bg-white border border-slate-200 rounded-lg p-2 outline-none focus:border-indigo-500 font-bold ${ex.amount < 0 ? 'text-emerald-600' : 'text-rose-600'}">
+          </div>
+          <button onclick="removeExtraRow(${idx})" class="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition" title="Xóa dòng này">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+      `).join('');
+    }
+
     function handleMultipleFilesSelect(e, feeId) {
       const files = Array.from(e.target.files);
       if (!files || files.length === 0) return;
 
       if (!selectedImageFiles[feeId]) selectedImageFiles[feeId] = [];
-      // Thêm các file mới vào mảng
       selectedImageFiles[feeId] = selectedImageFiles[feeId].concat(files);
-      
       updateImagePreviews(feeId);
     }
 
@@ -556,7 +650,7 @@
         const reader = new FileReader();
         reader.onload = function(evt) {
           const thumbWrap = document.createElement('div');
-          thumbWrap.className = "relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 shadow-sm bg-slate-100 group";
+          thumbWrap.className = "relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 shadow-sm bg-slate-100";
           thumbWrap.innerHTML = `
             <img src="${evt.target.result}" class="w-full h-full object-cover">
             <button onclick="removeSelectedFile('${feeId}', ${index})" class="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 hover:bg-rose-600 text-white rounded-full flex items-center justify-center text-[10px] transition">
@@ -594,13 +688,18 @@
         }
       });
 
-      const extra = parseFloat(document.getElementById('extraAmount')?.value) || 0;
-      total += extra;
+      // Cộng dồn tất cả các khoản bù trừ phát sinh tự do
+      extraRowsData.forEach(ex => {
+        total += (parseFloat(ex.amount) || 0);
+      });
 
       document.getElementById('liveTotalDisplay').innerText = formatMoney(total);
       return total;
     }
 
+    // ========================================================
+    // LƯU TRỮ VÀO DATABASE SUPABASE THEO THÁNG
+    // ========================================================
     async function saveCurrentBillOnline() {
       const rentMonth = document.getElementById('inputBillMonth').value;
       if (!rentMonth) {
@@ -610,7 +709,7 @@
       const usageMonth = getPreviousMonth(rentMonth);
       const btn = document.getElementById('btnSaveBill');
       btn.disabled = true;
-      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang tải các ảnh & lưu lên Cloud...`;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang tải ảnh & lưu vào sổ...`;
 
       try {
         const items = [];
@@ -628,7 +727,7 @@
           } else if (f.type === 'quantity') {
             const qty = parseFloat(document.getElementById(`input_qty_${f.id}`)?.value) || 0;
             const amount = qty * f.rate;
-            items.push({ name: f.name, category: f.category, detail: `${qty} ${f.unit} x ${formatMoney(f.rate)} (${periodNote})`, amount });
+            items.push({ name: f.name, category: f.category, detail: `${qty} ${f.unit} × ${formatMoney(f.rate)} (${periodNote})`, amount });
             calculatedTotal += amount;
           } else if (f.type === 'meter') {
             const oldVal = parseFloat(document.getElementById(`meter_old_${f.id}`)?.value) || 0;
@@ -636,7 +735,6 @@
             const used = Math.max(0, newVal - oldVal);
             const amount = used * f.rate;
 
-            // Xử lý upload danh sách nhiều ảnh lên Supabase Storage
             let uploadedImages = [];
             const filesToUpload = selectedImageFiles[f.id] || [];
 
@@ -660,23 +758,28 @@
               category: f.category,
               oldMeter: oldVal,
               newMeter: newVal,
-              detail: `${oldVal} → ${newVal} (${used} ${f.unit}) - ${periodNote}`,
+              usedMeter: used,
+              rate: f.rate,
+              unit: f.unit,
+              detail: `(${newVal} - ${oldVal} = ${used} ${f.unit}) × ${formatMoney(f.rate)} - ${periodNote}`,
               amount,
-              meterImages: uploadedImages // Mảng chứa toàn bộ link ảnh
+              meterImages: uploadedImages
             });
             calculatedTotal += amount;
           }
         }
 
-        const extraReason = document.getElementById('extraReason').value.trim();
-        const extraAmount = parseFloat(document.getElementById('extraAmount').value) || 0;
-        calculatedTotal += extraAmount;
+        // Đóng gói mảng bù trừ phát sinh
+        const cleanExtras = extraRowsData.filter(ex => ex.reason.trim() !== '' || ex.amount !== 0);
+        cleanExtras.forEach(ex => {
+          calculatedTotal += (parseFloat(ex.amount) || 0);
+        });
 
         const payload = {
           rent_month: rentMonth,
           usage_month: usageMonth,
           items: items,
-          extra: { reason: extraReason, amount: extraAmount },
+          extra: { extras: cleanExtras },
           total: calculatedTotal,
           status: 'unpaid'
         };
@@ -685,27 +788,27 @@
         if (upsertErr) throw upsertErr;
 
         await loadBillsFromSupabase();
-        alert("Đã lưu và đồng bộ toàn bộ hóa đơn cùng các ảnh đối soát thành công!");
+        alert(`Đã lưu trữ thành công hóa đơn Kỳ ${formatMonthDisplay(rentMonth)} vào cơ sở dữ liệu!`);
         switchOwnerTab('history');
       } catch (err) {
         alert("Lỗi khi lưu: " + err.message);
       } finally {
         btn.disabled = false;
-        btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Lưu & Đồng bộ Online`;
+        btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Lưu & Lưu trữ vào sổ`;
       }
     }
 
     // ========================================================
     // 5. HIỂN THỊ DỮ LIỆU KHÁCH THUÊ
     // ========================================================
-    function renderTenantView() {
+    function renderTenantView(targetBill = null) {
       if (bills.length === 0) {
         document.getElementById('tenantRentList').innerHTML = `<p class="text-xs text-slate-400 py-2 text-center">Chưa có hóa đơn nào được phát hành.</p>`;
         document.getElementById('tenantServiceList').innerHTML = `<p class="text-xs text-slate-400 py-2 text-center">Không có dữ liệu.</p>`;
         document.getElementById('tenantTotalAmount').innerText = "0 đ";
         return;
       }
-      const latest = bills[0];
+      const latest = targetBill || bills[0];
 
       const rentM = formatMonthDisplay(latest.rentMonth);
       const usageM = formatMonthDisplay(latest.usageMonth);
@@ -724,7 +827,7 @@
         statusEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Chờ thanh toán`;
       }
 
-      // Render danh sách rent
+      // Render rent
       const rentList = document.getElementById('tenantRentList');
       const rentItems = latest.items.filter(i => i.category === 'rent');
       if (rentItems.length === 0) {
@@ -742,7 +845,7 @@
         `).join('');
       }
 
-      // Render danh sách service
+      // Render service
       const serviceList = document.getElementById('tenantServiceList');
       const serviceItems = latest.items.filter(i => i.category === 'service');
       if (serviceItems.length === 0) {
@@ -750,14 +853,13 @@
       } else {
         document.getElementById('tenantGroupServiceWrap').classList.remove('hidden');
         serviceList.innerHTML = serviceItems.map(it => {
-          // Hỗ trợ cả mảng meterImages mới hoặc meterImg cũ
           const imgList = it.meterImages || (it.meterImg ? [it.meterImg] : []);
           return `
             <div class="py-2.5">
               <div class="flex justify-between items-center">
                 <div>
                   <p class="text-slate-800 font-semibold">${it.name}</p>
-                  <p class="text-xs text-slate-500">${it.detail}</p>
+                  <p class="text-xs text-slate-500 font-medium text-indigo-700">${it.detail}</p>
                 </div>
                 <span class="font-bold text-slate-900">${formatMoney(it.amount)}</span>
               </div>
@@ -771,23 +873,32 @@
         }).join('');
       }
 
-      // Bù trừ phát sinh
+      // Render bù trừ phát sinh tự do
       const extraBlock = document.getElementById('tenantExtraBlock');
-      if (latest.extra && latest.extra.amount !== 0) {
+      const extraListEl = document.getElementById('tenantExtraList');
+      let extrasArr = [];
+      if (latest.extra) {
+        if (Array.isArray(latest.extra.extras)) extrasArr = latest.extra.extras;
+        else if (latest.extra.amount) extrasArr = [{ reason: latest.extra.reason, amount: latest.extra.amount }];
+      }
+
+      if (extrasArr.length > 0) {
         extraBlock.classList.remove('hidden');
-        document.getElementById('tenantExtraContent').innerHTML = `
-          <span>Phát sinh: ${latest.extra.reason || 'Khoản bù trừ'}</span>
-          <span class="font-bold ${latest.extra.amount > 0 ? 'text-rose-600' : 'text-emerald-600'}">
-            ${latest.extra.amount > 0 ? '+' : ''}${formatMoney(latest.extra.amount)}
-          </span>
-        `;
+        extraListEl.innerHTML = extrasArr.map(ex => `
+          <div class="bg-amber-50/80 border border-amber-200/70 p-2.5 rounded-xl flex justify-between items-center text-amber-900 font-medium">
+            <span>${ex.reason || 'Khoản bù trừ phát sinh'}</span>
+            <span class="font-bold ${ex.amount > 0 ? 'text-rose-600' : 'text-emerald-600'}">
+              ${ex.amount > 0 ? '+' : ''}${formatMoney(ex.amount)}
+            </span>
+          </div>
+        `).join('');
       } else {
         extraBlock.classList.add('hidden');
       }
 
       document.getElementById('tenantTotalAmount').innerText = formatMoney(latest.total);
 
-      // Cú pháp VietQR tùy biến
+      // Cú pháp VietQR
       let qrMemo = appConfig.qrPattern || "{ROOM} T{MONTH}";
       qrMemo = qrMemo.replace('{ROOM}', appConfig.roomName.replace(/\s+/g, ''))
                      .replace('{MONTH}', latest.rentMonth.split('-')[1])
@@ -801,7 +912,7 @@
       document.getElementById('qrAccountName').innerText = appConfig.accountName;
       document.getElementById('qrContent').innerText = qrMemo;
 
-      // Render bảng lịch sử
+      // Render bảng lịch sử bên dưới
       const histTable = document.getElementById('tenantHistoryTable');
       histTable.innerHTML = bills.map(b => {
         let allImages = [];
@@ -811,13 +922,13 @@
         });
 
         return `
-          <tr>
+          <tr class="hover:bg-slate-50 cursor-pointer" onclick="viewHistoricalBill('${b.rentMonth}')">
             <td class="py-3 font-medium text-slate-800">
               Kỳ ${formatMonthDisplay(b.rentMonth)}
               <span class="block text-xs text-slate-400">Dịch vụ: ${formatMonthDisplay(b.usageMonth)}</span>
             </td>
             <td class="py-3 font-bold text-slate-900">${formatMoney(b.total)}</td>
-            <td class="py-3 text-center">
+            <td class="py-3 text-center" onclick="event.stopPropagation()">
               ${allImages.length > 0 ? `<button onclick='openGalleryModal(${JSON.stringify(allImages)})' class="text-indigo-600 hover:text-indigo-800 font-semibold text-xs inline-flex items-center gap-1"><i class="fa-solid fa-images"></i> (${allImages.length})</button>` : `<span class="text-slate-300">-</span>`}
             </td>
             <td class="py-3 text-right">
@@ -828,6 +939,14 @@
           </tr>
         `;
       }).join('');
+    }
+
+    function viewHistoricalBill(rentMonth) {
+      const target = bills.find(b => b.rentMonth === rentMonth);
+      if (target) {
+        renderTenantView(target);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     }
 
     function toggleTenantQr() {
@@ -843,12 +962,12 @@
     }
 
     // ========================================================
-    // 6. QUẢN LÝ LỊCH SỬ / CÔNG NỢ
+    // 6. QUẢN LÝ SỔ LƯU TRỮ HÓA ĐƠN THEO THÁNG
     // ========================================================
     function renderOwnerBillsList() {
       const container = document.getElementById('ownerBillsList');
       if (bills.length === 0) {
-        container.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">Chưa có hóa đơn nào.</p>`;
+        container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">Chưa có hóa đơn nào được lưu trữ.</p>`;
         return;
       }
 
@@ -856,24 +975,35 @@
         <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
           <div>
             <div class="flex items-center gap-2">
-              <span class="text-sm font-bold text-slate-900">Kỳ thu ${formatMonthDisplay(b.rentMonth)}</span>
+              <span class="text-sm font-bold text-slate-900">Kỳ thu Tháng ${formatMonthDisplay(b.rentMonth)}</span>
               <span class="text-xs px-2 py-0.5 rounded-full font-medium ${b.status === 'paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
                 ${b.status === 'paid' ? 'Đã thu' : 'Chưa thu'}
               </span>
             </div>
-            <p class="text-xs text-slate-500 mt-0.5">Dịch vụ tháng: ${formatMonthDisplay(b.usageMonth)}</p>
-            <p class="text-xs font-bold text-indigo-600 mt-1">${formatMoney(b.total)}</p>
+            <p class="text-xs text-slate-500 mt-0.5">Dịch vụ: Tháng ${formatMonthDisplay(b.usageMonth)}</p>
+            <p class="text-xs font-bold text-indigo-600 mt-1">Tổng tiền: ${formatMoney(b.total)}</p>
           </div>
           <div class="flex items-center gap-1.5">
-            <button onclick="toggleBillStatusOnline(${idx})" class="p-2 rounded-lg bg-white border border-slate-200 text-xs font-semibold hover:bg-slate-100 transition-all text-slate-700" title="Đổi trạng thái">
+            <button onclick="previewBillOnTenant('${b.rentMonth}')" class="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold hover:bg-slate-100 transition text-slate-700" title="Xem hóa đơn này">
+              <i class="fa-regular fa-eye"></i> Xem
+            </button>
+            <button onclick="toggleBillStatusOnline(${idx})" class="p-2 rounded-lg bg-white border border-slate-200 text-xs font-semibold hover:bg-slate-100 transition text-slate-700" title="Đổi trạng thái thanh toán">
               <i class="fa-solid fa-arrows-rotate"></i>
             </button>
-            <button onclick="deleteBillOnline(${idx})" class="p-2 rounded-lg bg-white border border-slate-200 text-xs font-semibold hover:bg-rose-50 text-rose-600 transition-all" title="Xóa">
+            <button onclick="deleteBillOnline(${idx})" class="p-2 rounded-lg bg-white border border-slate-200 text-xs font-semibold hover:bg-rose-50 text-rose-600 transition" title="Xóa hóa đơn kỳ này">
               <i class="fa-solid fa-trash"></i>
             </button>
           </div>
         </div>
       `).join('');
+    }
+
+    function previewBillOnTenant(rentMonth) {
+      const b = bills.find(item => item.rentMonth === rentMonth);
+      if (b) {
+        handleSwitchMode(); // Về trang khách
+        renderTenantView(b);
+      }
     }
 
     async function toggleBillStatusOnline(idx) {
@@ -890,7 +1020,7 @@
 
     async function deleteBillOnline(idx) {
       const b = bills[idx];
-      if (confirm(`Bạn có chắc muốn xóa hóa đơn kỳ ${formatMonthDisplay(b.rentMonth)}?`)) {
+      if (confirm(`Bạn có chắc muốn xóa vĩnh viễn hóa đơn kỳ ${formatMonthDisplay(b.rentMonth)} khỏi cơ sở dữ liệu?`)) {
         const { error } = await db.from('room_bills').delete().eq('rent_month', b.rentMonth);
         if (!error) {
           bills.splice(idx, 1);
@@ -901,7 +1031,7 @@
     }
 
     // ========================================================
-    // 7. CẤU HÌNH TỰ DO HOÀN TOÀN
+    // 7. CẤU HÌNH TỰ DO
     // ========================================================
     function renderConfigTab() {
       document.getElementById('cfgRoomName').value = appConfig.roomName || '';
@@ -976,7 +1106,7 @@
     }
 
     function removeFeeConfig(idx) {
-      if (confirm("Xóa khoản thu này?")) {
+      if (confirm("Xóa khoản thu này khỏi cấu hình?")) {
         appConfig.fees.splice(idx, 1);
         renderConfigTab();
       }
@@ -1052,7 +1182,6 @@
       }
     }
 
-    // Modal hiển thị danh sách nhiều ảnh
     function openGalleryModal(imgList) {
       if (!imgList || imgList.length === 0) return;
       document.getElementById('modalImgCount').innerText = imgList.length;
@@ -1100,8 +1229,17 @@
         });
       }
 
-      if (b.extra && b.extra.amount !== 0) {
-        txt += `\n📌 Phát sinh (${b.extra.reason}): ${formatMoney(b.extra.amount)}\n`;
+      let extrasArr = [];
+      if (b.extra) {
+        if (Array.isArray(b.extra.extras)) extrasArr = b.extra.extras;
+        else if (b.extra.amount) extrasArr = [{ reason: b.extra.reason, amount: b.extra.amount }];
+      }
+
+      if (extrasArr.length > 0) {
+        txt += `\n📌 BÙ TRỪ & PHÁT SINH:\n`;
+        extrasArr.forEach(ex => {
+          txt += `• ${ex.reason}: ${ex.amount > 0 ? '+' : ''}${formatMoney(ex.amount)}\n`;
+        });
       }
 
       txt += `----------------------------------------\n`;
